@@ -30,6 +30,7 @@ enum {
     TINT = 1,
     TCELL,
     TSYMBOL,
+    TSTRING,
     TPRIMITIVE,
     TFUNCTION,
     TMACRO,
@@ -70,6 +71,8 @@ typedef struct Obj {
         };
         // Symbol
         char name[1];
+        // String
+        char text[1];
         // Primitive
         Primitive *fn;
         // Function or Macro
@@ -347,6 +350,12 @@ static Obj *make_symbol(void *root, char *name) {
     return sym;
 }
 
+static Obj *make_string(void *root, char *text) {
+    Obj *str = alloc(root, TSTRING, strlen(text) + 1);
+    strcpy(str->text, text);
+    return str;
+}
+
 static Obj *make_primitive(void *root, Primitive *fn) {
     Obj *r = alloc(root, TPRIMITIVE, sizeof(Primitive *));
     r->fn = fn;
@@ -383,6 +392,7 @@ static Obj *acons(void *root, Obj **x, Obj **y, Obj **a) {
 //======================================================================
 
 #define SYMBOL_MAX_LEN 200
+#define STRING_MAX_LEN 1000
 const char symbol_chars[] = "~!@#$%^&*-_=+:/?<>";
 
 static Obj *read_expr(void *root);
@@ -482,6 +492,26 @@ static Obj *read_symbol(void *root, char c) {
     return intern(root, buf);
 }
 
+static Obj *read_string(void *root) {
+    char buf[STRING_MAX_LEN + 1];
+    int len = 0;
+    while (1) {
+        if (STRING_MAX_LEN <= len)
+            error("String too long");
+        buf[len++] = getchar();
+	
+	if (peek() == '"') {
+		getchar();
+	        break;
+	}
+	
+	if (peek() == EOF)
+		error("Unterminated string");
+    }
+    buf[len] = '\0';
+    return make_string(root, buf);
+}
+
 static Obj *read_expr(void *root) {
     for (;;) {
         int c = getchar();
@@ -501,6 +531,8 @@ static Obj *read_expr(void *root) {
             return Dot;
         if (c == '\'')
             return read_quote(root);
+        if (c == '\"')
+            return read_string(root);
         if (isdigit(c))
             return make_int(root, read_number(c - '0'));
         if (c == '-' && isdigit(peek()))
@@ -537,6 +569,7 @@ static void print(Obj *obj) {
         return
     CASE(TINT, "%d", obj->value);
     CASE(TSYMBOL, "%s", obj->name);
+    CASE(TSTRING, "\"%s\"", obj->text);
     CASE(TPRIMITIVE, "<primitive>");
     CASE(TFUNCTION, "<function>");
     CASE(TMACRO, "<macro>");
@@ -668,6 +701,7 @@ static Obj *eval(void *root, Obj **env, Obj **obj) {
     case TFUNCTION:
     case TTRUE:
     case TNIL:
+    case TSTRING:
         // Self-evaluating objects
         return *obj;
     case TSYMBOL: {
