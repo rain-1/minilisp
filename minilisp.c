@@ -788,6 +788,14 @@ static Obj *prim_setcar(void *root, Obj **env, Obj **list) {
     (*args)->car->car = (*args)->cdr->car;
     return (*args)->car;
 }
+static Obj *prim_setcdr(void *root, Obj **env, Obj **list) {
+    DEFINE1(args);
+    *args = eval_list(root, env, list);
+    if (length(*args) != 2 || (*args)->car->type != TCELL)
+        error("Malformed setcdr");
+    (*args)->car->cdr = (*args)->cdr->car;
+    return (*args)->car;
+}
 
 // (while cond expr ...)
 static Obj *prim_while(void *root, Obj **env, Obj **list) {
@@ -973,6 +981,7 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "cdr", prim_cdr);
     add_primitive(root, env, "setq", prim_setq);
     add_primitive(root, env, "set-car!", prim_setcar);
+    add_primitive(root, env, "set-cdr!", prim_setcdr);
     add_primitive(root, env, "while", prim_while);
     add_primitive(root, env, "gensym", prim_gensym);
     add_primitive(root, env, "+", prim_plus);

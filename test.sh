@@ -58,6 +58,7 @@ run car a "(car '(a b c))"
 run cdr "(b c)" "(cdr '(a b c))"
 
 run set-car "(x . b)" "(define obj (cons 'a 'b)) (set-car! obj 'x) obj"
+run set-cdr "(a . y)" "(define obj (cons 'a 'b)) (set-cdr! obj 'y) obj"
 
 # Comments
 run comment 5 "
