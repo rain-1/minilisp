@@ -140,11 +140,11 @@
 
 ;; Set symbol "@" to location (x, y).
 (defun set (board x y)
-  (setcar (nth-tail (nth board x) y) '@))
+  (set-car! (nth-tail (nth board x) y) '@))
 
 ;; Set symbol "x" to location (x, y).
 (defun clear (board x y)
-  (setcar (nth-tail (nth board x) y) 'x))
+  (set-car! (nth-tail (nth board x) y) 'x))
 
 ;; Returns true if location (x, y)'s value is "@".
 (defun set? (board x y)
