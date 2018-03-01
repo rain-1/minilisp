@@ -972,7 +972,7 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "car", prim_car);
     add_primitive(root, env, "cdr", prim_cdr);
     add_primitive(root, env, "setq", prim_setq);
-    add_primitive(root, env, "setcar", prim_setcar);
+    add_primitive(root, env, "set-car!", prim_setcar);
     add_primitive(root, env, "while", prim_while);
     add_primitive(root, env, "gensym", prim_gensym);
     add_primitive(root, env, "+", prim_plus);
@@ -985,8 +985,8 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "lambda", prim_lambda);
     add_primitive(root, env, "if", prim_if);
     add_primitive(root, env, "=", prim_num_eq);
-    add_primitive(root, env, "eq", prim_eq);
-    add_primitive(root, env, "println", prim_println);
+    add_primitive(root, env, "eq?", prim_eq);
+    add_primitive(root, env, "print", prim_println);
 }
 
 //======================================================================
