@@ -498,12 +498,13 @@ static Obj *read_string(void *root) {
     while (1) {
         if (STRING_MAX_LEN <= len)
             error("String too long");
-        buf[len++] = getchar();
-	
+
 	if (peek() == '"') {
 		getchar();
 	        break;
 	}
+
+        buf[len++] = getchar();
 	
 	if (peek() == EOF)
 		error("Unterminated string");
