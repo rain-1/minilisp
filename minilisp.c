@@ -892,15 +892,29 @@ static Obj *prim_defun(void *root, Obj **env, Obj **list) {
 }
 
 // (define <symbol> expr)
+// (define (<symbol> <args> ...) <body> ...)
 static Obj *prim_define(void *root, Obj **env, Obj **list) {
-    if (length(*list) != 2 || (*list)->car->type != TSYMBOL)
-        error("Malformed define");
-    DEFINE2(sym, value);
-    *sym = (*list)->car;
-    *value = (*list)->cdr->car;
-    *value = eval(root, env, value);
-    add_variable(root, env, sym, value);
-    return *value;
+    if (length(*list) == 2 && (*list)->car->type == TSYMBOL) {
+        DEFINE2(sym, value);
+        *sym = (*list)->car;
+        *value = (*list)->cdr->car;
+        *value = eval(root, env, value);
+        add_variable(root, env, sym, value);
+        return *value;
+    }
+    else if(length(*list) > 2 && (*list)->car->type == TCELL) {
+        DEFINE3(sym, args, body);
+        *sym = (*list)->car->car;
+        *args = (*list)->car->cdr;
+        *body = (*list)->cdr;
+        // (cons sym (cons args body))
+        *body = cons(root, args, body);
+        *body = cons(root, sym, body);
+        return handle_defun(root, env, body, TFUNCTION);
+    }
+    else {
+      error("Malformed define");
+    }
 }
 
 // (defmacro <symbol> (<symbol> ...) expr ...)
