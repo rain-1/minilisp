@@ -843,6 +843,16 @@ static Obj *prim_minus(void *root, Obj **env, Obj **list) {
     return make_int(root, r);
 }
 
+static Obj *prim_times(void *root, Obj **env, Obj **list) {
+    int sum = 1;
+    for (Obj *args = eval_list(root, env, list); args != Nil; args = args->cdr) {
+        if (args->car->type != TINT)
+            error("* takes only numbers");
+        sum *= args->car->value;
+    }
+    return make_int(root, sum);
+}
+
 // (< <integer> <integer>)
 static Obj *prim_lt(void *root, Obj **env, Obj **list) {
     Obj *args = eval_list(root, env, list);
@@ -853,6 +863,39 @@ static Obj *prim_lt(void *root, Obj **env, Obj **list) {
     if (x->type != TINT || y->type != TINT)
         error("< takes only numbers");
     return x->value < y->value ? True : Nil;
+}
+// (> <integer> <integer>)
+static Obj *prim_gt(void *root, Obj **env, Obj **list) {
+    Obj *args = eval_list(root, env, list);
+    if (length(args) != 2)
+        error("malformed >");
+    Obj *x = args->car;
+    Obj *y = args->cdr->car;
+    if (x->type != TINT || y->type != TINT)
+        error("< takes only numbers");
+    return x->value > y->value ? True : Nil;
+}
+// (<= <integer> <integer>)
+static Obj *prim_lte(void *root, Obj **env, Obj **list) {
+    Obj *args = eval_list(root, env, list);
+    if (length(args) != 2)
+        error("malformed <=");
+    Obj *x = args->car;
+    Obj *y = args->cdr->car;
+    if (x->type != TINT || y->type != TINT)
+        error("<= takes only numbers");
+    return x->value <= y->value ? True : Nil;
+}
+// (>= <integer> <integer>)
+static Obj *prim_gte(void *root, Obj **env, Obj **list) {
+    Obj *args = eval_list(root, env, list);
+    if (length(args) != 2)
+        error("malformed >=");
+    Obj *x = args->car;
+    Obj *y = args->cdr->car;
+    if (x->type != TINT || y->type != TINT)
+        error(">= takes only numbers");
+    return x->value >= y->value ? True : Nil;
 }
 
 static Obj *handle_function(void *root, Obj **env, Obj **list, int type) {
@@ -902,7 +945,7 @@ static Obj *prim_define(void *root, Obj **env, Obj **list) {
         add_variable(root, env, sym, value);
         return *value;
     }
-    else if(length(*list) > 2 && (*list)->car->type == TCELL) {
+    else if(length(*list) >= 2 && (*list)->car->type == TCELL) {
         DEFINE3(sym, args, body);
         *sym = (*list)->car->car;
         *args = (*list)->car->cdr;
@@ -1000,7 +1043,11 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "gensym", prim_gensym);
     add_primitive(root, env, "+", prim_plus);
     add_primitive(root, env, "-", prim_minus);
+    add_primitive(root, env, "*", prim_times);
     add_primitive(root, env, "<", prim_lt);
+    add_primitive(root, env, ">", prim_gt);
+    add_primitive(root, env, "<=", prim_lte);
+    add_primitive(root, env, ">=", prim_gte);
     add_primitive(root, env, "define", prim_define);
     add_primitive(root, env, "defun", prim_defun);
     add_primitive(root, env, "defmacro", prim_defmacro);
