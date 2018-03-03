@@ -297,6 +297,7 @@ static void gc(void *root) {
         case TINT:
         case TSYMBOL:
         case TPRIMITIVE:
+        case TSTRING:
             // Any of the above types does not contain a pointer to a GC-managed object.
             break;
         case TCELL:
@@ -877,6 +878,18 @@ static Obj *prim_times(void *root, Obj **env, Obj **list) {
     return make_int(root, sum);
 }
 
+// (modulo <integer> <integer>)
+static Obj *prim_modulo(void *root, Obj **env, Obj **list) {
+    Obj *args = eval_list(root, env, list);
+    if (length(args) != 2)
+        error("malformed <");
+    Obj *x = args->car;
+    Obj *y = args->cdr->car;
+    if (x->type != TINT || y->type != TINT)
+        error("malformed module");
+    return make_int(root, x->value % y->value);
+}
+
 // (< <integer> <integer>)
 static Obj *prim_lt(void *root, Obj **env, Obj **list) {
     Obj *args = eval_list(root, env, list);
@@ -1071,6 +1084,7 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "+", prim_plus);
     add_primitive(root, env, "-", prim_minus);
     add_primitive(root, env, "*", prim_times);
+    add_primitive(root, env, "modulo", prim_modulo);
     add_primitive(root, env, "<", prim_lt);
     add_primitive(root, env, ">", prim_gt);
     add_primitive(root, env, "<=", prim_lte);
