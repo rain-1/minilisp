@@ -40,7 +40,7 @@ enum {
     // handle the object of this type. Other functions will never see the object of this type.
     TMOVED,
     // Const objects. They are statically allocated and will never be managed by GC.
-    TTRUE,
+    TTRUE,    TFALS,
     TNIL,
     TDOT,
     TCPAREN,
@@ -94,6 +94,7 @@ typedef struct Obj {
 
 // Constants
 static Obj *True = &(Obj){ TTRUE };
+static Obj *Fals = &(Obj){ TFALS };
 static Obj *Nil = &(Obj){ TNIL };
 static Obj *Dot = &(Obj){ TDOT };
 static Obj *Cparen = &(Obj){ TCPAREN };
@@ -473,6 +474,19 @@ static Obj *read_quote(void *root) {
     return *tmp;
 }
 
+// Reader marcro # for #t and #f
+static Obj *read_hash(void *root) {
+    char c = getchar();
+    switch(c) {
+    case 't':
+        return True;
+    case 'f':
+        return Fals;
+    default:
+        error("Invalid hash reader: <#%c>", c);
+    }
+}
+
 static int read_number(int val) {
     while (isdigit(peek()))
         val = val * 10 + (getchar() - '0');
@@ -534,6 +548,8 @@ static Obj *read_expr(void *root) {
             return read_quote(root);
         if (c == '\"')
             return read_string(root);
+        if (c == '#')
+            return read_hash(root);
         if (isdigit(c))
             return make_int(root, read_number(c - '0'));
         if (c == '-' && isdigit(peek()))
@@ -575,7 +591,8 @@ static void print(Obj *obj) {
     CASE(TFUNCTION, "<function>");
     CASE(TMACRO, "<macro>");
     CASE(TMOVED, "<moved>");
-    CASE(TTRUE, "t");
+    CASE(TTRUE, "#t");
+    CASE(TFALS, "#f");
     CASE(TNIL, "()");
 #undef CASE
     default:
@@ -701,6 +718,7 @@ static Obj *eval(void *root, Obj **env, Obj **obj) {
     case TPRIMITIVE:
     case TFUNCTION:
     case TTRUE:
+    case TFALS:
     case TNIL:
     case TSTRING:
         // Self-evaluating objects
@@ -809,7 +827,7 @@ static Obj *prim_while(void *root, Obj **env, Obj **list) {
         error("Malformed while");
     DEFINE2(cond, exprs);
     *cond = (*list)->car;
-    while (eval(root, env, cond) != Nil) {
+    while (eval(root, env, cond) != Fals) {
         *exprs = (*list)->cdr;
         eval_list(root, env, exprs);
     }
@@ -868,7 +886,7 @@ static Obj *prim_lt(void *root, Obj **env, Obj **list) {
     Obj *y = args->cdr->car;
     if (x->type != TINT || y->type != TINT)
         error("< takes only numbers");
-    return x->value < y->value ? True : Nil;
+    return x->value < y->value ? True : Fals;
 }
 // (> <integer> <integer>)
 static Obj *prim_gt(void *root, Obj **env, Obj **list) {
@@ -879,7 +897,7 @@ static Obj *prim_gt(void *root, Obj **env, Obj **list) {
     Obj *y = args->cdr->car;
     if (x->type != TINT || y->type != TINT)
         error("< takes only numbers");
-    return x->value > y->value ? True : Nil;
+    return x->value > y->value ? True : Fals;
 }
 // (<= <integer> <integer>)
 static Obj *prim_lte(void *root, Obj **env, Obj **list) {
@@ -890,7 +908,7 @@ static Obj *prim_lte(void *root, Obj **env, Obj **list) {
     Obj *y = args->cdr->car;
     if (x->type != TINT || y->type != TINT)
         error("<= takes only numbers");
-    return x->value <= y->value ? True : Nil;
+    return x->value <= y->value ? True : Fals;
 }
 // (>= <integer> <integer>)
 static Obj *prim_gte(void *root, Obj **env, Obj **list) {
@@ -901,7 +919,7 @@ static Obj *prim_gte(void *root, Obj **env, Obj **list) {
     Obj *y = args->cdr->car;
     if (x->type != TINT || y->type != TINT)
         error(">= takes only numbers");
-    return x->value >= y->value ? True : Nil;
+    return x->value >= y->value ? True : Fals;
 }
 
 static Obj *handle_function(void *root, Obj **env, Obj **list, int type) {
@@ -996,12 +1014,12 @@ static Obj *prim_if(void *root, Obj **env, Obj **list) {
     DEFINE3(cond, then, els);
     *cond = (*list)->car;
     *cond = eval(root, env, cond);
-    if (*cond != Nil) {
+    if (*cond != Fals) {
         *then = (*list)->cdr->car;
         return eval(root, env, then);
     }
     *els = (*list)->cdr->cdr;
-    return *els == Nil ? Nil : progn(root, env, els);
+    return *els == Nil ? Fals : progn(root, env, els);
 }
 
 // (= <integer> <integer>)
@@ -1013,7 +1031,7 @@ static Obj *prim_num_eq(void *root, Obj **env, Obj **list) {
     Obj *y = values->cdr->car;
     if (x->type != TINT || y->type != TINT)
         error("= only takes numbers");
-    return x->value == y->value ? True : Nil;
+    return x->value == y->value ? True : Fals;
 }
 
 // (eq expr expr)
@@ -1021,7 +1039,7 @@ static Obj *prim_eq(void *root, Obj **env, Obj **list) {
     if (length(*list) != 2)
         error("Malformed eq");
     Obj *values = eval_list(root, env, list);
-    return values->car == values->cdr->car ? True : Nil;
+    return values->car == values->cdr->car ? True : Fals;
 }
 
 static void add_primitive(void *root, Obj **env, char *name, Primitive *fn) {
@@ -1032,9 +1050,11 @@ static void add_primitive(void *root, Obj **env, char *name, Primitive *fn) {
 }
 
 static void define_constants(void *root, Obj **env) {
-    DEFINE1(sym);
-    *sym = intern(root, "t");
+    DEFINE2(sym, sym2);
+    *sym = intern(root, "#t");
     add_variable(root, env, sym, &True);
+    *sym2 = intern(root, "#f");
+    add_variable(root, env, sym2, &Fals);
 }
 
 static void define_primitives(void *root, Obj **env) {

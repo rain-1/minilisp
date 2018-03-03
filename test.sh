@@ -43,9 +43,9 @@ run 'unary -' -3 '(- 3)'
 run '-' -2 '(- 3 5)'
 run '-' -9 '(- 3 5 7)'
 
-run '<' t '(< 2 3)'
-run '<' '()' '(< 3 3)'
-run '<' '()' '(< 4 3)'
+run '<' '#t' '(< 2 3)'
+run '<' '#f' '(< 3 3)'
+run '<' '#f' '(< 4 3)'
 
 run 'literal list' '(a b c)' "'(a b c)"
 run 'literal list' '(a b . c)' "'(a b . c)"
@@ -74,32 +74,32 @@ run setq 17 '(setq + 17) +'
 
 # Conditionals
 run if a "(if 1 'a)"
-run if '()' "(if () 'a)"
+run if '#f' "(if #f 'a)"
 run if a "(if 1 'a 'b)"
 run if a "(if 0 'a 'b)"
 run if a "(if 'x 'a 'b)"
-run if b "(if () 'a 'b)"
-run if c "(if () 'a 'b 'c)"
+run if b "(if #f 'a 'b)"
+run if c "(if #f 'a 'b 'c)"
 
 # Numeric comparisons
-run = t '(= 3 3)'
-run = '()' '(= 3 2)'
+run = '#t' '(= 3 3)'
+run = '#f' '(= 3 2)'
 
 # eq
-run eq t "(eq? 'foo 'foo)"
-run eq t "(eq? + +)"
-run eq '()' "(eq? 'foo 'bar)"
-run eq '()' "(eq? + 'bar)"
+run eq '#t' "(eq? 'foo 'foo)"
+run eq '#t' "(eq? + +)"
+run eq '#f' "(eq? 'foo 'bar)"
+run eq '#f' "(eq? + 'bar)"
 
 # gensym
 run gensym G__0 '(gensym)'
-run gensym '()' "(eq? (gensym) 'G__0)"
-run gensym '()' '(eq? (gensym) (gensym))'
-run gensym t '((lambda (x) (eq? x x)) (gensym))'
+run gensym '#f' "(eq? (gensym) 'G__0)"
+run gensym '#f' '(eq? (gensym) (gensym))'
+run gensym '#t' '((lambda (x) (eq? x x)) (gensym))'
 
 # Functions
 run lambda '<function>' '(lambda (x) x)'
-run lambda t '((lambda () t))'
+run lambda '#t' '((lambda () #t))'
 run lambda 9 '((lambda (x) (+ x x x)) 3)'
 run defun 12 '(defun double (x) (+ x x)) (double 6)'
 
