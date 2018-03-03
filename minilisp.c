@@ -741,6 +741,11 @@ static Obj *prim_quote(void *root, Obj **env, Obj **list) {
     return (*list)->car;
 }
 
+// (begin exp ...)
+static Obj *prim_progn(void *root, Obj **env, Obj **list) {
+    return progn(root, env, list);
+}
+
 // (cons expr expr)
 static Obj *prim_cons(void *root, Obj **env, Obj **list) {
     if (length(*list) != 2)
@@ -1034,6 +1039,7 @@ static void define_constants(void *root, Obj **env) {
 
 static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "quote", prim_quote);
+    add_primitive(root, env, "begin", prim_progn);
     add_primitive(root, env, "cons", prim_cons);
     add_primitive(root, env, "car", prim_car);
     add_primitive(root, env, "cdr", prim_cdr);
