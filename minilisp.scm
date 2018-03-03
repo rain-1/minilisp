@@ -24,3 +24,6 @@
 
 (defmacro list (x . xs)
   (list-maker (cons x xs)))
+
+(define (newline) (print ""))
+

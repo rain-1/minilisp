@@ -63,7 +63,7 @@ typedef struct Obj {
     // Object values.
     union {
         // Int
-        int value;
+        long long value;
         // Cell
         struct {
             struct Obj *car;
@@ -108,7 +108,7 @@ static Obj *Symbols;
 //======================================================================
 
 // The size of the heap in byte
-#define MEMORY_SIZE 65536
+#define MEMORY_SIZE (1<<20)
 
 // The pointer pointing to the beginning of the current heap
 static void *memory;
@@ -333,8 +333,8 @@ static void gc(void *root) {
 // Constructors
 //======================================================================
 
-static Obj *make_int(void *root, int value) {
-    Obj *r = alloc(root, TINT, sizeof(int));
+static Obj *make_int(void *root, long long int value) {
+    Obj *r = alloc(root, TINT, sizeof(long long int));
     r->value = value;
     return r;
 }
@@ -488,7 +488,7 @@ static Obj *read_hash(void *root) {
     }
 }
 
-static int read_number(int val) {
+static long long int read_number(long long int val) {
     while (isdigit(peek()))
         val = val * 10 + (getchar() - '0');
     return val;
@@ -585,7 +585,7 @@ static void print(Obj *obj) {
     case type:                                  \
         printf(__VA_ARGS__);                    \
         return
-    CASE(TINT, "%d", obj->value);
+    CASE(TINT, "%lld", obj->value);
     CASE(TSYMBOL, "%s", obj->name);
     CASE(TSTRING, "\"%s\"", obj->text);
     CASE(TPRIMITIVE, "<primitive>");
@@ -882,12 +882,24 @@ static Obj *prim_times(void *root, Obj **env, Obj **list) {
 static Obj *prim_modulo(void *root, Obj **env, Obj **list) {
     Obj *args = eval_list(root, env, list);
     if (length(args) != 2)
-        error("malformed <");
+        error("malformed modulo");
     Obj *x = args->car;
     Obj *y = args->cdr->car;
     if (x->type != TINT || y->type != TINT)
-        error("malformed module");
+        error("malformed modulo");
     return make_int(root, x->value % y->value);
+}
+
+// (quotient <integer> <integer>)
+static Obj *prim_quotient(void *root, Obj **env, Obj **list) {
+    Obj *args = eval_list(root, env, list);
+    if (length(args) != 2)
+        error("malformed quotient");
+    Obj *x = args->car;
+    Obj *y = args->cdr->car;
+    if (x->type != TINT || y->type != TINT)
+        error("malformed quotient");
+    return make_int(root, x->value / y->value);
 }
 
 // (< <integer> <integer>)
@@ -1085,6 +1097,7 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "-", prim_minus);
     add_primitive(root, env, "*", prim_times);
     add_primitive(root, env, "modulo", prim_modulo);
+    add_primitive(root, env, "quotient", prim_quotient);
     add_primitive(root, env, "<", prim_lt);
     add_primitive(root, env, ">", prim_gt);
     add_primitive(root, env, "<=", prim_lte);
