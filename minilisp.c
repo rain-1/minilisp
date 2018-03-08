@@ -176,6 +176,31 @@ static void gc(void *root);
     Obj **var3 = (Obj **)(root_ADD_ROOT_ + 3);  \
     Obj **var4 = (Obj **)(root_ADD_ROOT_ + 4)
 
+#define DEFINE8(var1, var2, var3, var4, var5, var6, var7, var8)         \
+    ADD_ROOT(8);                                \
+    Obj **var1 = (Obj **)(root_ADD_ROOT_ + 1);  \
+    Obj **var2 = (Obj **)(root_ADD_ROOT_ + 2);  \
+    Obj **var3 = (Obj **)(root_ADD_ROOT_ + 3);  \
+    Obj **var4 = (Obj **)(root_ADD_ROOT_ + 4);  \
+    Obj **var5 = (Obj **)(root_ADD_ROOT_ + 5);  \
+    Obj **var6 = (Obj **)(root_ADD_ROOT_ + 6);  \
+    Obj **var7 = (Obj **)(root_ADD_ROOT_ + 7);  \
+    Obj **var8 = (Obj **)(root_ADD_ROOT_ + 8)
+
+#define DEFINE11(var1, var2, var3, var4, var5, var6, var7, var8, var9, var10, var11)         \
+    ADD_ROOT(11);                                \
+    Obj **var1 = (Obj **)(root_ADD_ROOT_ + 1);  \
+    Obj **var2 = (Obj **)(root_ADD_ROOT_ + 2);  \
+    Obj **var3 = (Obj **)(root_ADD_ROOT_ + 3);  \
+    Obj **var4 = (Obj **)(root_ADD_ROOT_ + 4);  \
+    Obj **var5 = (Obj **)(root_ADD_ROOT_ + 5);  \
+    Obj **var6 = (Obj **)(root_ADD_ROOT_ + 6);  \
+    Obj **var7 = (Obj **)(root_ADD_ROOT_ + 7);  \
+    Obj **var8 = (Obj **)(root_ADD_ROOT_ + 8);  \
+    Obj **var9 = (Obj **)(root_ADD_ROOT_ + 9);  \
+    Obj **var10 = (Obj **)(root_ADD_ROOT_ + 10);  \
+    Obj **var11 = (Obj **)(root_ADD_ROOT_ + 11)
+
 // Round up the given value to a multiple of size. Size must be a power of 2. It adds size - 1
 // first, then zero-ing the least significant bits to make the result a multiple of size. I know
 // these bit operations may look a little bit tricky, but it's efficient and thus frequently used.
@@ -643,8 +668,13 @@ static Obj *progn(void *root, Obj **env, Obj **list) {
     DEFINE2(lp, r);
     for (*lp = *list; *lp != Nil; *lp = (*lp)->cdr) {
         *r = (*lp)->car;
-        *r = eval(root, env, r);
-    }
+	if((*lp)->cdr == Nil) {
+            return eval(root, env, r);
+        }
+        else {
+            *r = eval(root, env, r);
+        }
+     }
     return *r;
 }
 
@@ -714,6 +744,9 @@ static Obj *macroexpand(void *root, Obj **env, Obj **obj) {
 
 // Evaluates the S expression.
 static Obj *eval(void *root, Obj **env, Obj **obj) {
+//DEFINE8(fn, expanded, args, params, newenv, body, lp, r);
+DEFINE11(fn, expanded, args, params, newenv, body, lp, r, cond, then, els);
+tail_eval:
     switch ((*obj)->type) {
     case TINT:
     case TPRIMITIVE:
@@ -733,16 +766,91 @@ static Obj *eval(void *root, Obj **env, Obj **obj) {
     }
     case TCELL: {
         // Function application form
-        DEFINE3(fn, expanded, args);
+//        DEFINE3(fn, expanded, args);
         *expanded = macroexpand(root, env, obj);
         if (*expanded != *obj)
             return eval(root, env, expanded);
         *fn = (*obj)->car;
         *fn = eval(root, env, fn);
         *args = (*obj)->cdr;
+
+    if ((*fn)->type == TSYMBOL && !strcmp("if", (*fn)->name)) {
+    *cond = (*args)->car;
+    *cond = eval(root, env, cond);
+    if (*cond != Fals) {
+        *then = (*args)->cdr->car;
+//        return eval(root, env, then);
+            obj = then;
+            goto tail_eval;
+    }
+    *els = (*args)->cdr->cdr;
+    if(*els == Nil) return Fals;
+//    return progn(root, env, els);
+
+    for (*lp = *els; *lp != Nil; *lp = (*lp)->cdr) {
+        *r = (*lp)->car;
+	if((*lp)->cdr == Nil) {
+//            return eval(root, newenv, r);
+            env = newenv;
+            obj = r;
+            goto tail_eval;
+        }
+        else {
+            *r = eval(root, newenv, r);
+        }
+     }
+    return *r;
+
+
+    }
+
+
         if ((*fn)->type != TPRIMITIVE && (*fn)->type != TFUNCTION)
             error("The head of a list must be a function");
-        return apply(root, env, fn, args);
+
+//        return apply(root, env, fn, args);
+//*apply(void *root, Obj **env, Obj **fn, Obj **args) 
+
+    if (!is_list(*args))
+        error("argument must be a list");
+    if ((*fn)->type == TPRIMITIVE) {
+
+        return (*fn)->fn(root, env, args);
+    }
+    if ((*fn)->type == TFUNCTION) {
+        DEFINE1(eargs);
+        *eargs = eval_list(root, env, args);
+
+//        return apply_func(root, env, fn, eargs);
+// *apply_func(void *root, Obj **env, Obj **fn, Obj **args) {
+
+//    DEFINE3(params, newenv, body);
+    *params = (*fn)->params;
+    *newenv = (*fn)->env;
+    *newenv = push_env(root, newenv, params, eargs);
+    *body = (*fn)->body;
+
+//    return progn(root, newenv, body);
+//     *progn(void *root, Obj **env, Obj **list) {
+//    DEFINE2(lp, r);
+
+    for (*lp = *body; *lp != Nil; *lp = (*lp)->cdr) {
+        *r = (*lp)->car;
+	if((*lp)->cdr == Nil) {
+//            return eval(root, newenv, r);
+            env = newenv;
+            obj = r;
+            goto tail_eval;
+        }
+        else {
+            *r = eval(root, newenv, r);
+        }
+     }
+    return *r;
+
+
+    }
+
     }
     default:
         error("Bug: eval: Unknown tag type: %d", (*obj)->type);
@@ -1075,11 +1183,13 @@ static void add_primitive(void *root, Obj **env, char *name, Primitive *fn) {
 }
 
 static void define_constants(void *root, Obj **env) {
-    DEFINE2(sym, sym2);
+    DEFINE3(sym, sym2, sym3);
     *sym = intern(root, "#t");
     add_variable(root, env, sym, &True);
     *sym2 = intern(root, "#f");
     add_variable(root, env, sym2, &Fals);
+    *sym3 = intern(root, "if");
+    add_variable(root, env, sym3, sym3);
 }
 
 static void define_primitives(void *root, Obj **env) {
@@ -1107,7 +1217,7 @@ static void define_primitives(void *root, Obj **env) {
     add_primitive(root, env, "defmacro", prim_defmacro);
     add_primitive(root, env, "macroexpand", prim_macroexpand);
     add_primitive(root, env, "lambda", prim_lambda);
-    add_primitive(root, env, "if", prim_if);
+//    add_primitive(root, env, "if", prim_if);
     add_primitive(root, env, "=", prim_num_eq);
     add_primitive(root, env, "eq?", prim_eq);
     add_primitive(root, env, "print", prim_println);
